@@ -1,20 +1,23 @@
-import * as Constants from '@mapbox/mapbox-gl-draw/src/constants';
-import doubleClickZoom from '@mapbox/mapbox-gl-draw/src/lib/double_click_zoom';
-import createSupplementaryPoints from '@mapbox/mapbox-gl-draw/src/lib/create_supplementary_points';
-import * as CommonSelectors from '@mapbox/mapbox-gl-draw/src/lib/common_selectors';
-import moveFeatures from '@mapbox/mapbox-gl-draw/src/lib/move_features';
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
+const Constants = MapboxDraw.constants;
+const {
+  doubleClickZoom,
+  createSupplementaryPoints,
+  CommonSelectors,
+  moveFeatures,
+} = MapboxDraw.lib;
 
-import { lineString, point } from '@turf/helpers';
-import bearing from '@turf/bearing';
-import center from '@turf/center';
-import midpoint from '@turf/midpoint';
-import distance from '@turf/distance';
-import destination from '@turf/destination';
-import transformRotate from '@turf/transform-rotate';
-import transformScale from '@turf/transform-scale';
+import { lineString, point } from "@turf/helpers";
+import bearing from "@turf/bearing";
+import center from "@turf/center";
+import midpoint from "@turf/midpoint";
+import distance from "@turf/distance";
+import destination from "@turf/destination";
+import transformRotate from "@turf/transform-rotate";
+import transformScale from "@turf/transform-scale";
 
-var rotate = require('./img/rotate.png');
-var scale = require('./img/scale.png');
+var rotate = require("./img/rotate.png");
+var scale = require("./img/scale.png");
 
 export const SRMode = {}; //scale rotate mode
 
@@ -25,195 +28,195 @@ export const SRCenter = {
 
 export const SRStyle = [
   {
-    id: 'gl-draw-polygon-fill-inactive',
-    type: 'fill',
+    id: "gl-draw-polygon-fill-inactive",
+    type: "fill",
     filter: [
-      'all',
-      ['==', 'active', 'false'],
-      ['==', '$type', 'Polygon'],
-      ['!=', 'user_type', 'overlay'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "active", "false"],
+      ["==", "$type", "Polygon"],
+      ["!=", "user_type", "overlay"],
+      ["!=", "mode", "static"],
     ],
     paint: {
-      'fill-color': '#3bb2d0',
-      'fill-outline-color': '#3bb2d0',
-      'fill-opacity': 0.2,
+      "fill-color": "#3bb2d0",
+      "fill-outline-color": "#3bb2d0",
+      "fill-opacity": 0.2,
     },
   },
   {
-    id: 'gl-draw-polygon-fill-active',
-    type: 'fill',
+    id: "gl-draw-polygon-fill-active",
+    type: "fill",
     filter: [
-      'all',
-      ['==', 'active', 'true'],
-      ['==', '$type', 'Polygon'],
-      ['!=', 'user_type', 'overlay'],
+      "all",
+      ["==", "active", "true"],
+      ["==", "$type", "Polygon"],
+      ["!=", "user_type", "overlay"],
     ],
     paint: {
-      'fill-color': '#fbb03b',
-      'fill-outline-color': '#fbb03b',
-      'fill-opacity': 0.2,
-    },
-  },
-
-  {
-    id: 'gl-draw-overlay-polygon-fill-inactive',
-    type: 'fill',
-    filter: [
-      'all',
-      ['==', 'active', 'false'],
-      ['==', '$type', 'Polygon'],
-      ['==', 'user_type', 'overlay'],
-      ['!=', 'mode', 'static'],
-    ],
-    paint: {
-      'fill-color': '#3bb2d0',
-      'fill-outline-color': '#3bb2d0',
-      'fill-opacity': 0.01,
-    },
-  },
-  {
-    id: 'gl-draw-overlay-polygon-fill-active',
-    type: 'fill',
-    filter: [
-      'all',
-      ['==', 'active', 'true'],
-      ['==', '$type', 'Polygon'],
-      ['==', 'user_type', 'overlay'],
-    ],
-    paint: {
-      'fill-color': '#fbb03b',
-      'fill-outline-color': '#fbb03b',
-      'fill-opacity': 0.01,
+      "fill-color": "#fbb03b",
+      "fill-outline-color": "#fbb03b",
+      "fill-opacity": 0.2,
     },
   },
 
   {
-    id: 'gl-draw-polygon-stroke-inactive',
-    type: 'line',
+    id: "gl-draw-overlay-polygon-fill-inactive",
+    type: "fill",
     filter: [
-      'all',
-      ['==', 'active', 'false'],
-      ['==', '$type', 'Polygon'],
-      ['!=', 'user_type', 'overlay'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "active", "false"],
+      ["==", "$type", "Polygon"],
+      ["==", "user_type", "overlay"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "fill-color": "#3bb2d0",
+      "fill-outline-color": "#3bb2d0",
+      "fill-opacity": 0.01,
+    },
+  },
+  {
+    id: "gl-draw-overlay-polygon-fill-active",
+    type: "fill",
+    filter: [
+      "all",
+      ["==", "active", "true"],
+      ["==", "$type", "Polygon"],
+      ["==", "user_type", "overlay"],
+    ],
+    paint: {
+      "fill-color": "#fbb03b",
+      "fill-outline-color": "#fbb03b",
+      "fill-opacity": 0.01,
+    },
+  },
+
+  {
+    id: "gl-draw-polygon-stroke-inactive",
+    type: "line",
+    filter: [
+      "all",
+      ["==", "active", "false"],
+      ["==", "$type", "Polygon"],
+      ["!=", "user_type", "overlay"],
+      ["!=", "mode", "static"],
     ],
     layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
+      "line-cap": "round",
+      "line-join": "round",
     },
     paint: {
-      'line-color': '#3bb2d0',
-      'line-width': 2,
+      "line-color": "#3bb2d0",
+      "line-width": 2,
     },
   },
 
   {
-    id: 'gl-draw-polygon-stroke-active',
-    type: 'line',
-    filter: ['all', ['==', 'active', 'true'], ['==', '$type', 'Polygon']],
+    id: "gl-draw-polygon-stroke-active",
+    type: "line",
+    filter: ["all", ["==", "active", "true"], ["==", "$type", "Polygon"]],
     layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
+      "line-cap": "round",
+      "line-join": "round",
     },
     paint: {
-      'line-color': '#fbb03b',
-      'line-dasharray': [0.2, 2],
-      'line-width': 2,
+      "line-color": "#fbb03b",
+      "line-dasharray": [0.2, 2],
+      "line-width": 2,
     },
   },
 
   {
-    id: 'gl-draw-polygon-midpoint',
-    type: 'circle',
-    filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'midpoint']],
+    id: "gl-draw-polygon-midpoint",
+    type: "circle",
+    filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
     paint: {
-      'circle-radius': 3,
-      'circle-color': '#fbb03b',
+      "circle-radius": 3,
+      "circle-color": "#fbb03b",
     },
   },
 
   {
-    id: 'gl-draw-line-inactive',
-    type: 'line',
+    id: "gl-draw-line-inactive",
+    type: "line",
     filter: [
-      'all',
-      ['==', 'active', 'false'],
-      ['==', '$type', 'LineString'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "active", "false"],
+      ["==", "$type", "LineString"],
+      ["!=", "mode", "static"],
     ],
     layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
+      "line-cap": "round",
+      "line-join": "round",
     },
     paint: {
-      'line-color': '#3bb2d0',
-      'line-width': 2,
+      "line-color": "#3bb2d0",
+      "line-width": 2,
     },
   },
   {
-    id: 'gl-draw-line-active',
-    type: 'line',
-    filter: ['all', ['==', '$type', 'LineString'], ['==', 'active', 'true']],
+    id: "gl-draw-line-active",
+    type: "line",
+    filter: ["all", ["==", "$type", "LineString"], ["==", "active", "true"]],
     layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
+      "line-cap": "round",
+      "line-join": "round",
     },
     paint: {
-      'line-color': '#fbb03b',
-      'line-dasharray': [0.2, 2],
-      'line-width': 2,
-    },
-  },
-  {
-    id: 'gl-draw-polygon-and-line-vertex-stroke-inactive',
-    type: 'circle',
-    filter: [
-      'all',
-      ['==', 'meta', 'vertex'],
-      ['==', '$type', 'Point'],
-      ['!=', 'mode', 'static'],
-    ],
-    paint: {
-      'circle-radius': 4,
-      'circle-color': '#fff',
+      "line-color": "#fbb03b",
+      "line-dasharray": [0.2, 2],
+      "line-width": 2,
     },
   },
   {
-    id: 'gl-draw-polygon-and-line-vertex-inactive',
-    type: 'circle',
+    id: "gl-draw-polygon-and-line-vertex-stroke-inactive",
+    type: "circle",
     filter: [
-      'all',
-      ['==', 'meta', 'vertex'],
-      ['==', '$type', 'Point'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "meta", "vertex"],
+      ["==", "$type", "Point"],
+      ["!=", "mode", "static"],
     ],
     paint: {
-      'circle-radius': 2,
-      'circle-color': '#fbb03b',
+      "circle-radius": 4,
+      "circle-color": "#fff",
+    },
+  },
+  {
+    id: "gl-draw-polygon-and-line-vertex-inactive",
+    type: "circle",
+    filter: [
+      "all",
+      ["==", "meta", "vertex"],
+      ["==", "$type", "Point"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "circle-radius": 2,
+      "circle-color": "#fbb03b",
     },
   },
 
   {
-    id: 'gl-draw-polygon-and-line-vertex-scale-icon',
-    type: 'symbol',
+    id: "gl-draw-polygon-and-line-vertex-scale-icon",
+    type: "symbol",
     filter: [
-      'all',
-      ['==', 'meta', 'vertex'],
-      ['==', '$type', 'Point'],
-      ['!=', 'mode', 'static'],
-      ['has', 'heading'],
+      "all",
+      ["==", "meta", "vertex"],
+      ["==", "$type", "Point"],
+      ["!=", "mode", "static"],
+      ["has", "heading"],
     ],
     layout: {
-      'icon-image': 'scale',
-      'icon-allow-overlap': true,
-      'icon-ignore-placement': true,
-      'icon-rotation-alignment': 'map',
-      'icon-rotate': ['get', 'heading'],
+      "icon-image": "scale",
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
+      "icon-rotation-alignment": "map",
+      "icon-rotate": ["get", "heading"],
     },
     paint: {
-      'icon-opacity': 1.0,
-      'icon-opacity-transition': {
+      "icon-opacity": 1.0,
+      "icon-opacity-transition": {
         delay: 0,
         duration: 0,
       },
@@ -221,107 +224,107 @@ export const SRStyle = [
   },
 
   {
-    id: 'gl-draw-point-point-stroke-inactive',
-    type: 'circle',
+    id: "gl-draw-point-point-stroke-inactive",
+    type: "circle",
     filter: [
-      'all',
-      ['==', 'active', 'false'],
-      ['==', '$type', 'Point'],
-      ['==', 'meta', 'feature'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "active", "false"],
+      ["==", "$type", "Point"],
+      ["==", "meta", "feature"],
+      ["!=", "mode", "static"],
     ],
     paint: {
-      'circle-radius': 5,
-      'circle-opacity': 1,
-      'circle-color': '#fff',
+      "circle-radius": 5,
+      "circle-opacity": 1,
+      "circle-color": "#fff",
     },
   },
   {
-    id: 'gl-draw-point-inactive',
-    type: 'circle',
+    id: "gl-draw-point-inactive",
+    type: "circle",
     filter: [
-      'all',
-      ['==', 'active', 'false'],
-      ['==', '$type', 'Point'],
-      ['==', 'meta', 'feature'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "active", "false"],
+      ["==", "$type", "Point"],
+      ["==", "meta", "feature"],
+      ["!=", "mode", "static"],
     ],
     paint: {
-      'circle-radius': 3,
-      'circle-color': '#3bb2d0',
+      "circle-radius": 3,
+      "circle-color": "#3bb2d0",
     },
   },
   {
-    id: 'gl-draw-point-stroke-active',
-    type: 'circle',
+    id: "gl-draw-point-stroke-active",
+    type: "circle",
     filter: [
-      'all',
-      ['==', '$type', 'Point'],
-      ['==', 'active', 'true'],
-      ['!=', 'meta', 'midpoint'],
+      "all",
+      ["==", "$type", "Point"],
+      ["==", "active", "true"],
+      ["!=", "meta", "midpoint"],
     ],
     paint: {
-      'circle-radius': 4,
-      'circle-color': '#fff',
+      "circle-radius": 4,
+      "circle-color": "#fff",
     },
   },
   {
-    id: 'gl-draw-point-active',
-    type: 'circle',
+    id: "gl-draw-point-active",
+    type: "circle",
     filter: [
-      'all',
-      ['==', '$type', 'Point'],
-      ['!=', 'meta', 'midpoint'],
-      ['==', 'active', 'true'],
+      "all",
+      ["==", "$type", "Point"],
+      ["!=", "meta", "midpoint"],
+      ["==", "active", "true"],
     ],
     paint: {
-      'circle-radius': 2,
-      'circle-color': '#fbb03b',
+      "circle-radius": 2,
+      "circle-color": "#fbb03b",
     },
   },
   {
-    id: 'gl-draw-polygon-fill-static',
-    type: 'fill',
-    filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Polygon']],
+    id: "gl-draw-polygon-fill-static",
+    type: "fill",
+    filter: ["all", ["==", "mode", "static"], ["==", "$type", "Polygon"]],
     paint: {
-      'fill-color': '#404040',
-      'fill-outline-color': '#404040',
-      'fill-opacity': 0.1,
+      "fill-color": "#404040",
+      "fill-outline-color": "#404040",
+      "fill-opacity": 0.1,
     },
   },
   {
-    id: 'gl-draw-polygon-stroke-static',
-    type: 'line',
-    filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Polygon']],
+    id: "gl-draw-polygon-stroke-static",
+    type: "line",
+    filter: ["all", ["==", "mode", "static"], ["==", "$type", "Polygon"]],
     layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
+      "line-cap": "round",
+      "line-join": "round",
     },
     paint: {
-      'line-color': '#404040',
-      'line-width': 2,
+      "line-color": "#404040",
+      "line-width": 2,
     },
   },
   {
-    id: 'gl-draw-line-static',
-    type: 'line',
-    filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'LineString']],
+    id: "gl-draw-line-static",
+    type: "line",
+    filter: ["all", ["==", "mode", "static"], ["==", "$type", "LineString"]],
     layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
+      "line-cap": "round",
+      "line-join": "round",
     },
     paint: {
-      'line-color': '#404040',
-      'line-width': 2,
+      "line-color": "#404040",
+      "line-width": 2,
     },
   },
   {
-    id: 'gl-draw-point-static',
-    type: 'circle',
-    filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Point']],
+    id: "gl-draw-point-static",
+    type: "circle",
+    filter: ["all", ["==", "mode", "static"], ["==", "$type", "Point"]],
     paint: {
-      'circle-radius': 5,
-      'circle-color': '#404040',
+      "circle-radius": 5,
+      "circle-color": "#404040",
     },
   },
 
@@ -338,76 +341,76 @@ export const SRStyle = [
   // },
 
   {
-    id: 'gl-draw-line-rotate-point',
-    type: 'line',
+    id: "gl-draw-line-rotate-point",
+    type: "line",
     filter: [
-      'all',
-      ['==', 'meta', 'midpoint'],
-      ['==', 'icon', 'rotate'],
-      ['==', '$type', 'LineString'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "meta", "midpoint"],
+      ["==", "icon", "rotate"],
+      ["==", "$type", "LineString"],
+      ["!=", "mode", "static"],
       // ['==', 'active', 'true']
     ],
     layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
+      "line-cap": "round",
+      "line-join": "round",
     },
     paint: {
-      'line-color': '#fbb03b',
-      'line-dasharray': [0.2, 2],
-      'line-width': 2,
+      "line-color": "#fbb03b",
+      "line-dasharray": [0.2, 2],
+      "line-width": 2,
     },
   },
   {
-    id: 'gl-draw-polygon-rotate-point-stroke',
-    type: 'circle',
+    id: "gl-draw-polygon-rotate-point-stroke",
+    type: "circle",
     filter: [
-      'all',
-      ['==', 'meta', 'midpoint'],
-      ['==', 'icon', 'rotate'],
-      ['==', '$type', 'Point'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "meta", "midpoint"],
+      ["==", "icon", "rotate"],
+      ["==", "$type", "Point"],
+      ["!=", "mode", "static"],
     ],
     paint: {
-      'circle-radius': 4,
-      'circle-color': '#fff',
+      "circle-radius": 4,
+      "circle-color": "#fff",
     },
   },
   {
-    id: 'gl-draw-polygon-rotate-point',
-    type: 'circle',
+    id: "gl-draw-polygon-rotate-point",
+    type: "circle",
     filter: [
-      'all',
-      ['==', 'meta', 'midpoint'],
-      ['==', 'icon', 'rotate'],
-      ['==', '$type', 'Point'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "meta", "midpoint"],
+      ["==", "icon", "rotate"],
+      ["==", "$type", "Point"],
+      ["!=", "mode", "static"],
     ],
     paint: {
-      'circle-radius': 2,
-      'circle-color': '#fbb03b',
+      "circle-radius": 2,
+      "circle-color": "#fbb03b",
     },
   },
   {
-    id: 'gl-draw-polygon-rotate-point-icon',
-    type: 'symbol',
+    id: "gl-draw-polygon-rotate-point-icon",
+    type: "symbol",
     filter: [
-      'all',
-      ['==', 'meta', 'midpoint'],
-      ['==', 'icon', 'rotate'],
-      ['==', '$type', 'Point'],
-      ['!=', 'mode', 'static'],
+      "all",
+      ["==", "meta", "midpoint"],
+      ["==", "icon", "rotate"],
+      ["==", "$type", "Point"],
+      ["!=", "mode", "static"],
     ],
     layout: {
-      'icon-image': 'rotate',
-      'icon-allow-overlap': true,
-      'icon-ignore-placement': true,
-      'icon-rotation-alignment': 'map',
-      'icon-rotate': ['get', 'heading'],
+      "icon-image": "rotate",
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
+      "icon-rotation-alignment": "map",
+      "icon-rotate": ["get", "heading"],
     },
     paint: {
-      'icon-opacity': 1.0,
-      'icon-opacity-transition': {
+      "icon-opacity": 1.0,
+      "icon-opacity-transition": {
         delay: 0,
         duration: 0,
       },
@@ -420,11 +423,11 @@ function parseSRCenter(value, defaultSRCenter = SRCenter.Center) {
 
   if (value === SRCenter.Center || value === SRCenter.Opposite) return value;
 
-  if (value == 'center') return SRCenter.Center;
+  if (value == "center") return SRCenter.Center;
 
-  if (value == 'opposite') return SRCenter.Opposite;
+  if (value == "opposite") return SRCenter.Opposite;
 
-  throw Error('Invalid SRCenter: ' + value);
+  throw Error("Invalid SRCenter: " + value);
 }
 
 /*
@@ -446,14 +449,14 @@ SRMode.onSetup = function (opts) {
   const feature = this.getFeature(featureId);
 
   if (!feature) {
-    throw new Error('You must provide a valid featureId to enter SRMode');
+    throw new Error("You must provide a valid featureId to enter SRMode");
   }
 
   if (
     feature.type === Constants.geojsonTypes.POINT ||
     feature.type === Constants.geojsonTypes.MULTI_POINT
   ) {
-    throw new TypeError('SRMode can not handle points');
+    throw new TypeError("SRMode can not handle points");
   }
   //   if (
   //     feature.coordinates === undefined ||
@@ -491,7 +494,7 @@ SRMode.onSetup = function (opts) {
   };
 
   if (!(state.canRotate || state.canScale)) {
-    console.warn('Non of canScale or canRotate is true');
+    console.warn("Non of canScale or canRotate is true");
   }
 
   this.setSelectedCoordinates(
@@ -509,11 +512,11 @@ SRMode.onSetup = function (opts) {
   var _this = this;
   this.map.loadImage(rotate.default, function (error, image) {
     if (error) throw error;
-    _this.map.addImage('rotate', image);
+    _this.map.addImage("rotate", image);
   });
   this.map.loadImage(scale.default, function (error, image) {
     if (error) throw error;
-    _this.map.addImage('scale', image);
+    _this.map.addImage("scale", image);
   });
 
   return state;
@@ -615,7 +618,7 @@ SRMode._createRotationPoint = function (
     type: Constants.geojsonTypes.FEATURE,
     properties: {
       meta: Constants.meta.MIDPOINT,
-      icon: 'rotate',
+      icon: "rotate",
       parent: featureId,
       lng: cR1[0],
       lat: cR1[1],
@@ -731,7 +734,7 @@ SRMode.onFeature = function (state, e) {
 
 SRMode.coordinateIndex = function (coordPaths) {
   if (coordPaths.length >= 1) {
-    var parts = coordPaths[0].split('.');
+    var parts = coordPaths[0].split(".");
     return parseInt(parts[parts.length - 1]);
   } else {
     return 0;
@@ -818,7 +821,7 @@ SRMode.computeAxes = function (state, polygon) {
       c0 = corners[i2];
     }
     scaleCenters[i] = c0;
-    distances[i] = distance(point(c0), point(c1), { units: 'meters' });
+    distances[i] = distance(point(c0), point(c1), { units: "meters" });
   }
 
   state.scaling = {
@@ -855,7 +858,7 @@ SRMode.onDrag = function (state, e) {
 
 SRMode.dragRotatePoint = function (state, e, delta) {
   if (state.rotation === undefined || state.rotation == null) {
-    throw new Error('state.rotation required');
+    throw new Error("state.rotation required");
   }
 
   var polygon = state.feature.toGeoJSON();
@@ -887,7 +890,7 @@ SRMode.dragRotatePoint = function (state, e, delta) {
 
 SRMode.dragScalePoint = function (state, e, delta) {
   if (state.scaling === undefined || state.scaling == null) {
-    throw new Error('state.scaling required');
+    throw new Error("state.scaling required");
   }
 
   var polygon = state.feature.toGeoJSON();
@@ -899,7 +902,7 @@ SRMode.dragScalePoint = function (state, e, delta) {
   var center = point(cCenter);
   var m1 = point([e.lngLat.lng, e.lngLat.lat]);
 
-  var dist = distance(center, m1, { units: 'meters' });
+  var dist = distance(center, m1, { units: "meters" });
   var scale = dist / state.scaling.distances[cIdx];
 
   if (CommonSelectors.isShiftDown(e)) {
