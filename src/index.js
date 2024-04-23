@@ -15,9 +15,10 @@ import distance from "@turf/distance";
 import destination from "@turf/destination";
 import transformRotate from "@turf/transform-rotate";
 import transformScale from "@turf/transform-scale";
+import _ from "lodash";
 
-var rotate = require("./img/rotate.png");
-var scale = require("./img/scale.png");
+const rotate = require("./img/rotate.png");
+const scale = require("./img/scale.png");
 
 export const SRMode = {}; //scale rotate mode
 
@@ -443,6 +444,8 @@ function parseSRCenter(value, defaultSRCenter = SRCenter.Center) {
         canSelectFeatures: default true,    // can exit to simple_select mode
     }
  */
+SRMode.state = {};
+
 SRMode.onSetup = function (opts) {
   const featureId = this.getSelected()[0].id;
 
@@ -485,12 +488,13 @@ SRMode.onSetup = function (opts) {
 
     canSelectFeatures:
       opts.canSelectFeatures != undefined ? opts.canSelectFeatures : true,
-    // selectedFeatureMode: opts.selectedFeatureMode != undefined ? opts.selectedFeatureMode : 'simple_select',
 
     dragMoveLocation: opts.startPos || null,
     dragMoving: false,
     canDragMove: false,
     selectedCoordPaths: opts.coordPath ? [opts.coordPath] : [],
+
+    callIntermediateUpdate: opts.callIntermediateUpdate || false,
   };
 
   if (!(state.canRotate || state.canScale)) {
@@ -509,17 +513,20 @@ SRMode.onSetup = function (opts) {
     trash: state.canTrash,
   });
 
-  var _this = this;
-  this.map.loadImage(rotate.default, function (error, image) {
-    if (error) throw error;
-    _this.map.addImage("rotate", image);
-  });
-  this.map.loadImage(scale.default, function (error, image) {
-    if (error) throw error;
-    _this.map.addImage("scale", image);
-  });
+  this.loadImage("rotate", rotate);
+  this.loadImage("scale", scale);
 
   return state;
+};
+
+// since onSetup can't be async, we use this function to load images
+// unfortunately it will throw warning on first load
+// to avoid this, you can load images before calling onSetup
+SRMode.loadImage = async function (name, image) {
+  if (!this.map.hasImage(name)) {
+    const rotateImage = await this.map.loadImage(image);
+    this.map.addImage(name, rotateImage.data);
+  }
 };
 
 SRMode.toDisplayFeatures = function (state, geojson, push) {
@@ -547,14 +554,11 @@ SRMode.toDisplayFeatures = function (state, geojson, push) {
     push(geojson);
   }
 
-  // this.fireActionable(state);
   this.setActionableState({
     combineFeatures: false,
     uncombineFeatures: false,
     trash: state.canTrash,
   });
-
-  // this.fireUpdate();
 };
 
 SRMode.onStop = function () {
@@ -690,6 +694,7 @@ SRMode.stopDragging = function (state) {
   state.dragMoving = false;
   state.canDragMove = false;
   state.dragMoveLocation = null;
+  this.fireUpdate();
 };
 
 const isRotatePoint = CommonSelectors.isOfMetaType(Constants.meta.MIDPOINT);
@@ -861,12 +866,11 @@ SRMode.dragRotatePoint = function (state, e, delta) {
     throw new Error("state.rotation required");
   }
 
-  var polygon = state.feature.toGeoJSON();
   var m1 = point([e.lngLat.lng, e.lngLat.lat]);
 
   const n = state.rotation.centers.length;
   var cIdx = (this.coordinateIndex(state.selectedCoordPaths) + 1) % n;
-  // TODO validate cIdx
+
   var cCenter = state.rotation.centers[cIdx];
   var center = point(cCenter);
 
@@ -884,8 +888,7 @@ SRMode.dragRotatePoint = function (state, e, delta) {
   });
 
   state.feature.incomingCoords(rotatedFeature.geometry.coordinates);
-  // TODO add option for this:
-  this.fireUpdate();
+  this.fireIntermediateUpdate(state);
 };
 
 SRMode.dragScalePoint = function (state, e, delta) {
@@ -893,10 +896,7 @@ SRMode.dragScalePoint = function (state, e, delta) {
     throw new Error("state.scaling required");
   }
 
-  var polygon = state.feature.toGeoJSON();
-
   var cIdx = this.coordinateIndex(state.selectedCoordPaths);
-  // TODO validate cIdx
 
   var cCenter = state.scaling.centers[cIdx];
   var center = point(cCenter);
@@ -906,7 +906,6 @@ SRMode.dragScalePoint = function (state, e, delta) {
   var scale = dist / state.scaling.distances[cIdx];
 
   if (CommonSelectors.isShiftDown(e)) {
-    // TODO discrete scaling
     scale = 0.05 * Math.round(scale / 0.05);
   }
 
@@ -916,15 +915,13 @@ SRMode.dragScalePoint = function (state, e, delta) {
   });
 
   state.feature.incomingCoords(scaledFeature.geometry.coordinates);
-  // TODO add option for this:
-  this.fireUpdate();
+  this.fireIntermediateUpdate(state);
 };
 
 SRMode.dragFeature = function (state, e, delta) {
   moveFeatures(this.getSelected(), delta);
   state.dragMoveLocation = e.lngLat;
-  // TODO add option for this:
-  this.fireUpdate();
+  this.fireIntermediateUpdate(state);
 };
 
 SRMode.fireUpdate = function () {
@@ -934,17 +931,24 @@ SRMode.fireUpdate = function () {
   });
 };
 
+SRMode.fireIntermediateUpdate = _.throttle(function (state) {
+  if (state.callIntermediateUpdate) {
+    this.map.fire("draw.intermediateupdate", {
+      action: Constants.updateActions.CHANGE_COORDINATES,
+      features: this.getSelected().map((f) => f.toGeoJSON()),
+    });
+  }
+}, 200);
+
 SRMode.onMouseOut = function (state) {
   // As soon as you mouse leaves the canvas, update the feature
   if (state.dragMoving) {
     this.fireUpdate();
+    state.dragMoving = false;
   }
 };
 
 SRMode.onTouchEnd = SRMode.onMouseUp = function (state) {
-  if (state.dragMoving) {
-    this.fireUpdate();
-  }
   this.stopDragging(state);
 };
 
